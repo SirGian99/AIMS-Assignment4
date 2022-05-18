@@ -1,4 +1,5 @@
-# myTeam.py
+#Prova flaminia
+# # myTeam.py
 # ---------
 # Licensing Information:  You are free to use or extend these projects for
 # educational purposes provided that (1) you do not distribute or publish
@@ -37,7 +38,6 @@ def createTeam(firstIndex, secondIndex, isRed,
   any extra arguments, so you should make sure that the default
   behavior is what you want for the nightly contest.
   """
-  print "Ciao"
   # The following line is an example only; feel free to change it.
   return [eval(first)(firstIndex), eval(second)(secondIndex)]
 
@@ -53,7 +53,6 @@ class DummyAgent(CaptureAgent):
   """
 
   def registerInitialState(self, gameState):
-    print '1234'
     """
     This method handles the initial setup of the
     agent to populate useful fields (such as what team
@@ -84,7 +83,6 @@ class DummyAgent(CaptureAgent):
     Picks among actions randomly.
     """
     actions = gameState.getLegalActions(self.index)
-    print 'prova'
 
     '''
     You should change this in your own agent.
