@@ -1,6 +1,6 @@
 # Ignore everything
-*
 
+contest/*
 # But not these files...
 !.gitignore
-!/contest/myTeam.py
+!/*/myTeam.py
