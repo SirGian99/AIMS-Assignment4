@@ -22,7 +22,7 @@ import game
 #################
 
 def createTeam(firstIndex, secondIndex, isRed,
-               first = 'DummyAgent', second = 'DummyAgent'):
+               first = 'Attacker', second = 'Defender'):
   """
   This function should return a list of two agents that will form the
   team, initialized using firstIndex and secondIndex as their agent
@@ -45,7 +45,7 @@ def createTeam(firstIndex, secondIndex, isRed,
 # Agents #
 ##########
 
-class DummyAgent(CaptureAgent):
+class MainAgent(CaptureAgent) :
   """
   A Dummy agent to serve as an example of the necessary agent structure.
   You should look at baselineTeam.py for more details about how to
@@ -72,6 +72,10 @@ class DummyAgent(CaptureAgent):
     CaptureAgent.registerInitialState in captureAgents.py.
     '''
     CaptureAgent.registerInitialState(self, gameState)
+    #for line in self.getFood(gameState):
+    ##  print('  '.join(map(str, line)))
+    print(self.getTeam(gameState))
+    
 
     '''
     Your initialization code goes here, if you need any.
@@ -82,11 +86,35 @@ class DummyAgent(CaptureAgent):
     """
     Picks among actions randomly.
     """
-    actions = gameState.getLegalActions(self.index)
+    #actions = gameState.getLegalActions(self.index)
+    ##print("choose action")
+
+    ##print(self.getFood(self, gameState))
 
     '''
     You should change this in your own agent.
     '''
+    #return random.choice(actions)
 
-    return random.choice(actions)
+  #target is a 1x2 matrix with the point to go to, e.g. [9,12]
+  def astar(self, gameState, target):
+    
 
+class Defender(MainAgent):
+  def registerInitialState(self, gameState):
+    print("I am a Defender")
+
+  def chooseAction(self, gameState):
+      ##Impelement defender actions
+      actions = gameState.getLegalActions(self.index)
+      return random.choice(actions)
+
+class Attacker(MainAgent):
+  def registerInitialState(self, gameState):
+    print("I am an Attacker")
+
+  def chooseAction(self, gameState):
+      ##Impelemtn attacker action
+      actions = gameState.getLegalActions(self.index)
+      return random.choice(actions)
+      
