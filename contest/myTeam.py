@@ -12,6 +12,7 @@
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 
+from glob import glob
 from captureAgents import CaptureAgent
 
 import random, time, util
@@ -33,7 +34,7 @@ class Inlet:
 #################
 
 def createTeam(firstIndex, secondIndex, isRed,
-               first = 'Defender', second = 'Attacker'):
+               first = 'Attacker', second = 'Defender'):
   """
   This function should return a list of two agents that will form the
   team, initialized using firstIndex and secondIndex as their agent
@@ -56,10 +57,26 @@ def createTeam(firstIndex, secondIndex, isRed,
 # Agents #
 ##########
 
+class Node():
+  x_pos
+  y_pos
+  f
+  g
+  h
+
 class MainAgent(CaptureAgent) :
+  """
+  A Dummy agent to serve as an example of the necessary agent structure.
+  You should look at baselineTeam.py for more details about how to
+  create an agent as this is the bare minimum.
+  """
 
   def registerInitialState(self, gameState):
     CaptureAgent.registerInitialState(self, gameState)
+    #for line in self.getFood(gameState):
+    ##  print('  '.join(map(str, line)))
+    #print(self.getTeam(gameState))
+    
 
     '''
     Your initialization code goes here, if you need any.
@@ -170,6 +187,48 @@ class Defender(MainAgent):
 
     actions = gameState.getLegalActions(self.index)
     return random.choice(actions)
+
+  #target is a 1x2 matrix with the point to go to, e.g. [9,12]
+  def astar(self, startNode, targetNode, actions: list):
+    openList = list()
+    closedList = list()
+    openList.append(startNode)
+
+    while openList.count > 0:
+      currentNode = (0,0) ##todo find node with smallest f value
+      openList.remove(currentNode)
+      closedList.append(currentNode)
+      if targetNode == currentNode:
+        return True ##we reached the target
+      
+      children = list()
+      if (actions.__contains__('North')):
+        children.append((currentNode[0][0], currentNode[0][1]+1)) # append node above currentNode
+      if (actions.__contains__('South')):
+        children.append((currentNode[0][0], currentNode[0][1]-1)) # append node below currentNode
+      if (actions.__contains__('West')):
+        children.append((currentNode[0][0]-1, currentNode[0][1])) # append node left to currentNode
+      if (actions.__contains__('East')):
+        children.append((currentNode[0][0]+1, currentNode[0][1])) # append node right to currentNode
+      
+      for child in children:
+        if closedList.__contains__(child):
+          continue
+        child_g = self.calculateCost(startNode, currentNode)
+        child_h = self.calculateCost(currentNode, targetNode)
+        child_f = self.calculateCost(startNode, targetNode)
+        if (openList.__contains__(child)):
+          if (child_g > self.calculateCost(child, currentNode)):
+            continue
+        openList.append(child)
+
+  def calculateCost(startNode, endNode):
+    return abs(startNode[0][0] - endNode[0][0]) + abs(startNode[0][1] - endNode[0][1])
+
+
+
+    
+
 
 class Attacker(MainAgent):
   def registerInitialState(self, gameState):
