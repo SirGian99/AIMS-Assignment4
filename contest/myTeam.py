@@ -191,16 +191,19 @@ class MainAgent(CaptureAgent) :
       for child in children:
         if closedList.__contains__(child):
           continue
-        child.g = self.calculateCost(startNode, currentNode)
-        child.h = self.calculateCost(currentNode, targetNode)
-        child.f = self.calculateCost(startNode, targetNode)
+        if self.__eq__(currentNode):
+          child.g=current.g
+        else : child.g = current.g+1
+        #child.h =  manhattan(child, targetNode)
+        child.h = abs(child[0][0] - targetNode[0][0]) + abs(child[0][1] - targetNode[0][1])
+        child.f = child.g + child.h
         if (openList.__contains__(child)):
           if (child.g > self.calculateCost(child, currentNode)):
             continue
         openList.append(child)
 
-  def calculateCost(startNode, endNode):
-    return abs(startNode[0][0] - endNode[0][0]) + abs(startNode[0][1] - endNode[0][1])
+  #def manhattan(startNode, endNode):
+  #  return abs(startNode[0][0] - endNode[0][0]) + abs(startNode[0][1] - endNode[0][1])
 
 
 
