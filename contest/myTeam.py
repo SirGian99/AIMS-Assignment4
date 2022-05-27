@@ -27,6 +27,12 @@ class Inlet:
     self.end_pos = end_pos
     self.size = util.manhattanDistance(start_pos, end_pos)
 
+class Node():
+  x_pos
+  y_pos
+  f
+  g
+  h
 
 
 #################
@@ -56,13 +62,6 @@ def createTeam(firstIndex, secondIndex, isRed,
 ##########
 # Agents #
 ##########
-
-class Node():
-  x_pos
-  y_pos
-  f
-  g
-  h
 
 class MainAgent(CaptureAgent) :
   """
