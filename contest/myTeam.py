@@ -41,6 +41,8 @@ class Node():
 
     def __eq__(self, other):
         return self.position == other.position
+    def __hash__(self):
+        return hash(self.position)
 
 
 def astar(maze, start, end):
@@ -55,18 +57,18 @@ def astar(maze, start, end):
     end_node.g = end_node.h = end_node.f = 0
 
     # Initialize both open and closed list
-    open_list = []
-    closed_list = []
+    open_list = set()
+    closed_list = set()
 
     # Add the start node
-    open_list.append(start_node)
+    open_list.add(start_node)
 
     # Loop until you find the end
     while len(open_list) > 0:
         #print("open list length: " + str(len(open_list)))
 
         # Get the current node
-        current_node = open_list[0]
+        current_node = random.sample(open_list, 1)[0]
         current_index = 0
         for index, item in enumerate(open_list):
             if item.f < current_node.f:
@@ -74,8 +76,9 @@ def astar(maze, start, end):
                 current_index = index
 
         # Pop current off open list, add to closed list
-        open_list.pop(current_index)
-        closed_list.append(current_node)
+        open_list.remove(current_node)
+        #open_list.pop(current_index)
+        closed_list.add(current_node)
 
         # Found the goal
         if current_node == end_node:
@@ -111,9 +114,12 @@ def astar(maze, start, end):
         for child in children:
 
             # Child is on the closed list
-            for closed_child in closed_list:
-                if child == closed_child:
-                    continue
+            if child in closed_list:
+                continue
+
+            #for closed_child in closed_list:
+             #   if child == closed_child:
+              #      continue
 
             # Create the f, g, and h values
             child.g = current_node.g + 1
@@ -126,7 +132,7 @@ def astar(maze, start, end):
                     continue
 
             # Add the child to the open list
-            open_list.append(child)
+            open_list.add(child)
 
 
 #################
