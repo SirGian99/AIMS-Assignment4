@@ -27,12 +27,6 @@ class Inlet:
     self.end_pos = end_pos
     self.size = util.manhattanDistance(start_pos, end_pos)
 
-class Node():
-  x_pos
-  y_pos
-  f
-  g
-  h
 
 
 #################
@@ -63,6 +57,18 @@ def createTeam(firstIndex, secondIndex, isRed,
 # Agents #
 ##########
 
+class Node():
+  def __init__(self, parent=None, position=None):
+    self.parent = parent
+    self.position = position
+
+    self.g = 0
+    self.h = 0
+    self.f = 0
+
+  def __eq__(self, other):
+    return self.position == other.position
+
 class MainAgent(CaptureAgent) :
   """
   A Dummy agent to serve as an example of the necessary agent structure.
@@ -71,6 +77,24 @@ class MainAgent(CaptureAgent) :
   """
 
   def registerInitialState(self, gameState):
+    """
+    This method handles the initial setup of the
+    agent to populate useful fields (such as what team
+    we're on).
+
+    A distanceCalculator instance caches the maze distances
+    between each pair of positions, so your agents can use:
+    self.distancer.getDistance(p1, p2)
+
+    IMPORTANT: This method may run for at most 15 seconds.
+    """
+
+    '''
+    Make sure you do not delete the following line. If you would like to
+    use Manhattan distances instead of maze distances in order to save
+    on initialization time, please take a look at
+    CaptureAgent.registerInitialState in captureAgents.py.
+    '''
     CaptureAgent.registerInitialState(self, gameState)
     #for line in self.getFood(gameState):
     ##  print('  '.join(map(str, line)))
@@ -128,8 +152,59 @@ class MainAgent(CaptureAgent) :
     '''
     #return random.choice(actions)
 
-  #target is a 1x2 matrix with the point to go to, e.g. [9,12]   
+  #target is a 1x2 matrix with the point to go to, e.g. [9,12]
+  def astar(self,  startNode,  targetNode, actions: list):
+    openList = list(Node)
+    closedList = list(Node)
+    openList.append(startNode)
 
+    while openList.count > 0:
+      currentNode = openList[0] ##todo find node with smallest f value
+      openList.remove(currentNode)
+      closedList.append(currentNode)
+      currentIndex = 0
+      for index, item in enumerate(openList):
+        if item.f < currentNode.f:
+          currentNode = item
+          currentIndex = index
+      openList.pop(currentIndex)
+      closedList.append(currentNode)
+
+      if targetNode == currentNode:
+        path = []
+        current = currentNode
+        while current.parent:
+          path.append(current.position)
+          current = current.parent
+        return path[::-1] # Return reversed path
+      
+      children = list(Node)
+      if (actions.__contains__('North')):
+        children.append((currentNode[0][0], currentNode[0][1]+1)) # append node above currentNode
+      if (actions.__contains__('South')):
+        children.append((currentNode[0][0], currentNode[0][1]-1)) # append node below currentNode
+      if (actions.__contains__('West')):
+        children.append((currentNode[0][0]-1, currentNode[0][1])) # append node left to currentNode
+      if (actions.__contains__('East')):
+        children.append((currentNode[0][0]+1, currentNode[0][1])) # append node right to currentNode
+      
+      for child in children:
+        if closedList.__contains__(child):
+          continue
+        child.g = self.calculateCost(startNode, currentNode)
+        child.h = self.calculateCost(currentNode, targetNode)
+        child.f = self.calculateCost(startNode, targetNode)
+        if (openList.__contains__(child)):
+          if (child.g > self.calculateCost(child, currentNode)):
+            continue
+        openList.append(child)
+
+  def calculateCost(startNode, endNode):
+    return abs(startNode[0][0] - endNode[0][0]) + abs(startNode[0][1] - endNode[0][1])
+
+
+
+    
 
 class Defender(MainAgent):
   def registerInitialState(self, gameState):
@@ -187,48 +262,6 @@ class Defender(MainAgent):
     actions = gameState.getLegalActions(self.index)
     return random.choice(actions)
 
-  #target is a 1x2 matrix with the point to go to, e.g. [9,12]
-  def astar(self, startNode, targetNode, actions: list):
-    openList = list()
-    closedList = list()
-    openList.append(startNode)
-
-    while openList.count > 0:
-      currentNode = (0,0) ##todo find node with smallest f value
-      openList.remove(currentNode)
-      closedList.append(currentNode)
-      if targetNode == currentNode:
-        return True ##we reached the target
-      
-      children = list()
-      if (actions.__contains__('North')):
-        children.append((currentNode[0][0], currentNode[0][1]+1)) # append node above currentNode
-      if (actions.__contains__('South')):
-        children.append((currentNode[0][0], currentNode[0][1]-1)) # append node below currentNode
-      if (actions.__contains__('West')):
-        children.append((currentNode[0][0]-1, currentNode[0][1])) # append node left to currentNode
-      if (actions.__contains__('East')):
-        children.append((currentNode[0][0]+1, currentNode[0][1])) # append node right to currentNode
-      
-      for child in children:
-        if closedList.__contains__(child):
-          continue
-        child_g = self.calculateCost(startNode, currentNode)
-        child_h = self.calculateCost(currentNode, targetNode)
-        child_f = self.calculateCost(startNode, targetNode)
-        if (openList.__contains__(child)):
-          if (child_g > self.calculateCost(child, currentNode)):
-            continue
-        openList.append(child)
-
-  def calculateCost(startNode, endNode):
-    return abs(startNode[0][0] - endNode[0][0]) + abs(startNode[0][1] - endNode[0][1])
-
-
-
-    
-
-
 class Attacker(MainAgent):
   def registerInitialState(self, gameState):
     MainAgent.registerInitialState(self, gameState)
@@ -260,4 +293,5 @@ class Attacker(MainAgent):
 
     actions = gameState.getLegalActions(self.index)
     return random.choice(actions)
-      
+
+    
