@@ -1,4 +1,4 @@
-# myTeam.py
+ # myTeam.py
 # ---------
 # Licensing Information:  You are free to use or extend these projects for
 # educational purposes provided that (1) you do not distribute or publish
@@ -28,6 +28,112 @@ class Inlet:
     self.size = util.manhattanDistance(start_pos, end_pos)
 
 
+class Node():
+    """A node class for A* Pathfinding"""
+
+    def __init__(self, parent=None, position=None):
+        self.parent = parent
+        self.position = position
+
+        self.g = 0
+        self.h = 0
+        self.f = 0
+
+    def __eq__(self, other):
+        return self.position == other.position
+    def __hash__(self):
+        return hash(self.position)
+
+
+def astar(maze, start, end):
+    """Returns a list of tuples as a path from the given start to the given end in the given maze"""
+
+    print("going from node " + str(start) + " to node " + str(end))
+
+    # Create start and end node
+    start_node = Node(None, start)
+    start_node.g = start_node.h = start_node.f = 0
+    end_node = Node(None, end)
+    end_node.g = end_node.h = end_node.f = 0
+
+    # Initialize both open and closed list
+    open_list = set()
+    closed_list = set()
+
+    # Add the start node
+    open_list.add(start_node)
+
+    # Loop until you find the end
+    while len(open_list) > 0:
+        #print("open list length: " + str(len(open_list)))
+
+        # Get the current node
+        current_node = random.sample(open_list, 1)[0]
+        current_index = 0
+        for index, item in enumerate(open_list):
+            if item.f < current_node.f:
+                current_node = item
+                current_index = index
+
+        # Pop current off open list, add to closed list
+        open_list.remove(current_node)
+        #open_list.pop(current_index)
+        closed_list.add(current_node)
+
+        # Found the goal
+        if current_node == end_node:
+            path = []
+            current = current_node
+            while current is not None:
+                path.append(current.position)
+                current = current.parent
+            return path[::-1] # Return reversed path
+
+        # Generate children
+        children = []
+        for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0)]: # Adjacent squares
+
+            # Get node position
+            node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
+
+            # Make sure within range
+            if node_position[0] > (len(maze) - 1) or node_position[0] < 0 or node_position[1] > (len(maze[len(maze)-1]) -1) or node_position[1] < 0:
+                continue
+
+            # Make sure walkable terrain
+            if maze[node_position[0]][node_position[1]] != 0:
+                continue
+
+            # Create new node
+            new_node = Node(current_node, node_position)
+
+            # Append
+            children.append(new_node)
+
+        # Loop through children
+        for child in children:
+
+            # Child is on the closed list
+            if child in closed_list:
+                continue
+
+            #for closed_child in closed_list:
+             #   if child == closed_child:
+              #      continue
+
+            # Create the f, g, and h values
+            child.g = current_node.g + 1
+            child.h = ((child.position[0] - end_node.position[0]) ** 2) + ((child.position[1] - end_node.position[1]) ** 2) #TO BE MODIFIED ACCORDING TO OUR NEEDS
+            child.f = child.g + child.h
+
+            # Child is already in the open list
+            for open_node in open_list:
+                if child == open_node and child.g > open_node.g:
+                    continue
+
+            # Add the child to the open list
+            open_list.add(child)
+
 
 #################
 # Team creation #
@@ -56,18 +162,6 @@ def createTeam(firstIndex, secondIndex, isRed,
 ##########
 # Agents #
 ##########
-
-class Node():
-  def __init__(self, parent=None, position=None):
-    self.parent = parent
-    self.position = position
-
-    self.g = 0
-    self.h = 0
-    self.f = 0
-
-  def __eq__(self, other):
-    return self.position == other.position
 
 class MainAgent(CaptureAgent) :
   """
@@ -138,6 +232,7 @@ class MainAgent(CaptureAgent) :
     print("The field sixe is %d %d" % (self.layout.width, self.layout.height))
 
 
+
   def chooseAction(self, gameState):
     """
     Picks among actions randomly.
@@ -153,57 +248,7 @@ class MainAgent(CaptureAgent) :
     #return random.choice(actions)
 
   #target is a 1x2 matrix with the point to go to, e.g. [9,12]
-  def astar(self,  startNode,  targetNode, actions: list):
-    openList = list(Node)
-    closedList = list(Node)
-    openList.append(startNode)
-
-    while openList.count > 0:
-      currentNode = openList[0] ##todo find node with smallest f value
-      openList.remove(currentNode)
-      closedList.append(currentNode)
-      currentIndex = 0
-      for index, item in enumerate(openList):
-        if item.f < currentNode.f:
-          currentNode = item
-          currentIndex = index
-      openList.pop(currentIndex)
-      closedList.append(currentNode)
-
-      if targetNode == currentNode:
-        path = []
-        current = currentNode
-        while current.parent:
-          path.append(current.position)
-          current = current.parent
-        return path[::-1] # Return reversed path
-      
-      children = list(Node)
-      if (actions.__contains__('North')):
-        children.append((currentNode[0][0], currentNode[0][1]+1)) # append node above currentNode
-      if (actions.__contains__('South')):
-        children.append((currentNode[0][0], currentNode[0][1]-1)) # append node below currentNode
-      if (actions.__contains__('West')):
-        children.append((currentNode[0][0]-1, currentNode[0][1])) # append node left to currentNode
-      if (actions.__contains__('East')):
-        children.append((currentNode[0][0]+1, currentNode[0][1])) # append node right to currentNode
-      
-      for child in children:
-        if closedList.__contains__(child):
-          continue
-        if self.__eq__(currentNode):
-          child.g=current.g
-        else : child.g = current.g+1
-        #child.h =  manhattan(child, targetNode)
-        child.h = abs(child[0][0] - targetNode[0][0]) + abs(child[0][1] - targetNode[0][1])
-        child.f = child.g + child.h
-        if (openList.__contains__(child)):
-          if (child.g > self.calculateCost(child, currentNode)):
-            continue
-        openList.append(child)
-
-  #def manhattan(startNode, endNode):
-  #  return abs(startNode[0][0] - endNode[0][0]) + abs(startNode[0][1] - endNode[0][1])
+  
 
 
 
@@ -212,8 +257,13 @@ class MainAgent(CaptureAgent) :
 class Defender(MainAgent):
   def registerInitialState(self, gameState):
     MainAgent.registerInitialState(self, gameState)
-    self.debugDraw([(33,17)], [1,0,0])
-    print("I am a Defender")
+    #self.debugDraw([(33,17)], [1,0,0])
+    if(self.index==3):
+      path = astar(gameState.getWalls().data, gameState.getAgentState(self.index).getPosition(),gameState.getAgentState(self.index-1).getPosition())
+      print(path)
+      for i in range(len(path)):
+        self.debugDraw([path[i]], [0,1,0])
+    print("I am a Defender ", self.index)
 
   def chooseAction(self, gameState):
       ##Impelemtn attacker action
@@ -236,7 +286,7 @@ class Defender(MainAgent):
     for i in range(0, food.width):
       for j in range(0, food.height):
         if(not food[i][j] and old_food[i][j]):
-          self.debugDraw([(i,j)], [1,0,0])
+          #self.debugDraw([(i,j)], [1,0,0])
           eaten.append((i,j))
   
     #print("Legal actions are %s" % actions)
@@ -255,8 +305,8 @@ class Defender(MainAgent):
         if(len(opponents_pos)>0):
           closest_opponent = min(opponents_pos, key=lambda x: self.getMazeDistance(myState.getPosition(), x[1])) #not sure of this
           print("I should go to the closest opponent to eat him")
-          self.debugDraw([closest_opponent[1]], [1,1,1])
-          self.debugDraw([myState.getPosition()], [0,1,0])
+          #self.debugDraw([closest_opponent[1]], [1,1,1])
+          #self.debugDraw([myState.getPosition()], [0,1,0])
         else:#no opponent reachable
           #i should go to the inlet closest to the 
           print("I should go to the closest inlet and wait to chase a pacman")
@@ -298,3 +348,56 @@ class Attacker(MainAgent):
     return random.choice(actions)
 
     
+    """
+    
+    def astar_flami(self,  startNode,  targetNode, actions: list):
+    openList = list(Node)
+    closedList = list(Node)
+    openList.append(startNode)
+
+    while openList.count > 0:
+      currentNode = openList[0] ##todo find node with smallest f value
+      openList.remove(currentNode)
+      closedList.append(currentNode)
+      currentIndex = 0
+      for index, item in enumerate(openList):
+        if item.f < currentNode.f:
+          currentNode = item
+          currentIndex = index
+      openList.pop(currentIndex)
+      closedList.append(currentNode)
+
+      if targetNode == currentNode:
+        path = []
+        current = currentNode
+        while current.parent:
+          path.append(current.position)
+          current = current.parent
+        return path[::-1] # Return reversed path
+      
+      children = list(Node)
+      if (actions.__contains__('North')):
+        children.append((currentNode[0][0], currentNode[0][1]+1)) # append node above currentNode
+      if (actions.__contains__('South')):
+        children.append((currentNode[0][0], currentNode[0][1]-1)) # append node below currentNode
+      if (actions.__contains__('West')):
+        children.append((currentNode[0][0]-1, currentNode[0][1])) # append node left to currentNode
+      if (actions.__contains__('East')):
+        children.append((currentNode[0][0]+1, currentNode[0][1])) # append node right to currentNode
+      
+      for child in children:
+        if closedList.__contains__(child):
+          continue
+        child.g = self.calculateCost(startNode, currentNode)
+        child.h = self.calculateCost(currentNode, targetNode)
+        child.f = self.calculateCost(startNode, targetNode)
+        if (openList.__contains__(child)):
+          if (child.g > self.calculateCost(child, currentNode)):
+            continue
+        openList.append(child)
+
+  def calculateCost(startNode, endNode):
+    return abs(startNode[0][0] - endNode[0][0]) + abs(startNode[0][1] - endNode[0][1])
+    
+    
+    """
