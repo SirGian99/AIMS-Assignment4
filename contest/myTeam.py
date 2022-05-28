@@ -12,11 +12,15 @@
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 
-from glob import glob
+from __future__ import annotations
+
+from math import inf
+from typing import Tuple 
+from capture import GameState
 from captureAgents import CaptureAgent
 
-import random, time, util
-from game import Directions, Actions
+import random, util
+from game import AgentState, Actions
 import game
 
 GO_BACK_PERCENTAGE_THRESHOLD = 0.5
@@ -27,112 +31,27 @@ class Inlet:
     self.end_pos = end_pos
     self.size = util.manhattanDistance(start_pos, end_pos)
 
+Position = Tuple[int, int]
 
 class Node():
     """A node class for A* Pathfinding"""
+    
+    parent : None | Node = None 
+    position : Position = None
+    g = 0
+    h = 0
+    f = 0
 
-    def __init__(self, parent=None, position=None):
+    def __init__(self, parent : None | Node = None, position : Position = None):
         self.parent = parent
         self.position = position
 
-        self.g = 0
-        self.h = 0
-        self.f = 0
-
-    def __eq__(self, other):
+    def __eq__(self, other : Node) -> bool:
         return self.position == other.position
     def __hash__(self):
         return hash(self.position)
 
 
-def astar(maze, start, end):
-    """Returns a list of tuples as a path from the given start to the given end in the given maze"""
-
-    #print("going from node " + str(start) + " to node " + str(end))
-
-    # Create start and end node
-    start_node = Node(None, start)
-    start_node.g = start_node.h = start_node.f = 0
-    end_node = Node(None, end)
-    end_node.g = end_node.h = end_node.f = 0
-
-    # Initialize both open and closed list
-    open_list = set()
-    closed_list = set()
-
-    # Add the start node
-    open_list.add(start_node)
-
-    # Loop until you find the end
-    while len(open_list) > 0:
-        #print("open list length: " + str(len(open_list)))
-
-        # Get the current node
-        current_node = random.sample(open_list, 1)[0]
-        current_index = 0
-        for index, item in enumerate(open_list):
-            if item.f < current_node.f:
-                current_node = item
-                current_index = index
-
-        # Pop current off open list, add to closed list
-        open_list.remove(current_node)
-        #open_list.pop(current_index)
-        closed_list.add(current_node)
-
-        # Found the goal
-        if current_node == end_node:
-            path = []
-            current = current_node
-            while current is not None:
-                path.append(current.position)
-                current = current.parent
-            return path[::-1] # Return reversed path
-
-        # Generate children
-        children = []
-        for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0)]: # Adjacent squares
-
-            # Get node position
-            node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
-
-            # Make sure within range
-            if node_position[0] > (len(maze) - 1) or node_position[0] < 0 or node_position[1] > (len(maze[len(maze)-1]) -1) or node_position[1] < 0:
-                continue
-
-            # Make sure walkable terrain
-            if maze[(int)(node_position[0])][int(node_position[1])] != 0:
-                continue
-
-            # Create new node
-            new_node = Node(current_node, node_position)
-
-            # Append
-            children.append(new_node)
-
-        # Loop through children
-        for child in children:
-
-            # Child is on the closed list
-            if child in closed_list:
-                continue
-
-            #for closed_child in closed_list:
-             #   if child == closed_child:
-              #      continue
-
-            # Create the f, g, and h values
-            child.g = current_node.g + 1
-            child.h = ((child.position[0] - end_node.position[0]) ** 2) + ((child.position[1] - end_node.position[1]) ** 2) #TO BE MODIFIED ACCORDING TO OUR NEEDS
-            child.f = child.g + child.h
-
-            # Child is already in the open list
-            for open_node in open_list:
-                if child == open_node and child.g > open_node.g:
-                    continue
-
-            # Add the child to the open list
-            open_list.add(child)
 
 def path_to_moves(path):
   """
@@ -180,7 +99,7 @@ class MainAgent(CaptureAgent) :
   create an agent as this is the bare minimum.
   """
 
-  def registerInitialState(self, gameState):
+  def registerInitialState(self, gameState : GameState):
     """
     This method handles the initial setup of the
     agent to populate useful fields (such as what team
@@ -259,8 +178,163 @@ class MainAgent(CaptureAgent) :
     #return random.choice(actions)
 
   #target is a 1x2 matrix with the point to go to, e.g. [9,12]
-  
 
+
+# Function has to be here such that we can reference 'MainAgent'
+
+def astar(maze : list[list[bool]], start : Position, end : Position, agent: MainAgent):
+    """Returns a list of tuples as a path from the given start to the given end in the given maze"""
+
+    #print("going from node " + str(start) + " to node " + str(end))
+
+    # Create start and end node
+    start_node = Node(None, start)
+    end_node = Node(None, end)
+    
+    # Initialize both open and closed list
+    open_list = set()
+    closed_list = set()
+
+    # Add the start node
+    open_list.add(start_node)
+
+    # Loop until you find the end
+    while len(open_list) > 0:
+        #print("open list length: " + str(len(open_list)))
+
+        # Get the current node
+        current_node = random.sample(open_list, 1)[0]
+        current_index = 0
+        for index, item in enumerate(open_list):
+            if item.f < current_node.f:
+                current_node = item
+                current_index = index
+
+        # Pop current off open list, add to closed list
+        open_list.remove(current_node)
+        #open_list.pop(current_index)
+        closed_list.add(current_node)
+
+        # Found the goal
+        if current_node == end_node:
+            path = []
+            current = current_node
+            while current is not None:
+                path.append(current.position)
+                current = current.parent
+            return path[::-1] # Return reversed path
+
+        # Generate children
+        children = []
+        for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0)]: # Adjacent squares
+
+            # Get node position
+            node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
+
+            # Make sure within range
+            if node_position[0] > (len(maze) - 1) or node_position[0] < 0 or node_position[1] > (len(maze[len(maze)-1]) -1) or node_position[1] < 0:
+                continue
+
+            # Make sure walkable terrain
+            if maze[(int)(node_position[0])][int(node_position[1])]:
+                continue
+
+            # Create new node
+            new_node = Node(current_node, node_position)
+
+            # Append
+            children.append(new_node)
+
+        # Loop through children
+        for child in children:
+
+            # Child is on the closed list
+            if child in closed_list:
+                continue
+
+            #for closed_child in closed_list:
+             #   if child == closed_child:
+              #      continue
+
+            # Create the f, g, and h values
+            child.g = current_node.g + position_cost(current_node, agent)
+            # We could also use 'agent.getMazeDistance' if we had access to that
+            child.h = agent.getMazeDistance(child.position, end_node.position)
+            
+            #child.h = calculate_h(child,end_node)
+            child.f = child.g + child.h
+
+            # Child is already in the open list
+            for open_node in open_list:
+                if child == open_node and child.g > open_node.g:
+                    continue
+
+            # Add the child to the open list
+            open_list.add(child)
+
+
+# This function is used to determine the punishment weight of 
+# the given position
+# A pacman for example should not run into a ghost if it is not scared
+# also power ups should probably be a priority while choosing a path
+# next priority should be food. 
+def position_cost(current_node : Node, agent : MainAgent):
+  gameState : GameState = agent.getCurrentObservation()
+  myState : AgentState = gameState.getAgentState(agent.index)
+  observable_enemies = list(filter(
+    lambda pos : pos != None,
+      map(
+        lambda index : gameState.getAgentPosition(index),
+        agent.getOpponents(gameState)
+      )
+      ))
+  node_is_enemy = current_node.position in observable_enemies
+
+  if(myState.isPacman):
+    node_is_food = agent.getFood(gameState)[int(current_node.position[0])][int(current_node.position[1])]
+    node_is_powerup = current_node.position in agent.getCapsules(gameState)
+
+    # TODO ajust magic numbers
+    if node_is_enemy:
+      return inf if myState.scaredTimer == 0 else 0 # Please don't hurt me :( (but only if you are scary)
+    elif node_is_food:
+      return 5 # Yummy
+    elif node_is_powerup:
+      return 1 # even more yummy
+    
+    return 10 # We could make this dynamic based on the amount of food left
+
+  else: # We are a defender 
+
+    return 1
+
+def find_target_attack_area( agent : MainAgent):
+  
+  gameState : GameState = agent.getCurrentObservation()
+  myState : AgentState = gameState.getAgentState(agent.index)
+  observable_enemies = list(filter(
+    lambda pos : pos != None,
+      map(
+        lambda index : gameState.getAgentPosition(index),
+        agent.getOpponents(gameState)
+      )
+      ))
+
+  return (20, 9)
+
+  for nearbypos in [(0, -1), (0, 1), (-1, 0), (1, 0)]: # Adjacent squares
+    # Get node position
+    node_position = (current_node.position[0] + nearbypos[0], current_node.position[1] + nearbypos[1])
+    # Create new node
+    new_node = Node(current_node, node_position)
+    # Append
+    nearby.append(new_node)
+    foodmatrix =self.getFood(gameState)
+    # Loop through nearby
+    for nearnode in nearby:
+      if foodmatrix[node_position[0],node_position[1]]==1:
+        current_node.h-=1 #?
+ 
 
 
     
@@ -269,6 +343,7 @@ class Defender(MainAgent):
   def registerInitialState(self, gameState):
     MainAgent.registerInitialState(self, gameState)
     #self.debugDraw([(33,17)], [1,0,0])
+    self.path = []
     if(self.index==3):
       self.path = []#astar(gameState.getWalls().data, gameState.getAgentState(self.index).getPosition(),gameState.getAgentState(self.index-1).getPosition())
       print(self.path)
@@ -276,7 +351,7 @@ class Defender(MainAgent):
         self.debugDraw([self.path[i]], [0,1,0])
     print(path_to_moves(self.path))
     print("I am a Defender ", self.index, "at position ", gameState.getAgentState(self.index).getPosition())
-    print("ATTENTION REQUIRED ON LINE 316")
+    print("ATTENTION REQUIRED ON LINE 354")
     self.move_index = 0
     self.previousPosition = gameState.getAgentState(self.index).getPosition()
 
@@ -314,7 +389,7 @@ class Defender(MainAgent):
 
     #First A* test
     """ATTENTION PLEASE: TOY CODE FOR TESTING PURPOSES ONLY"""
-    self.path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), (1,1))
+    self.path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), find_target_attack_area(self), self)
     self.debugDraw(self.path, [0,1,0], True)
     moves = path_to_moves(self.path)
     self.move_index +=1
