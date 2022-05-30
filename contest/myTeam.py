@@ -69,7 +69,7 @@ def path_to_moves(path):
 #################
 
 def createTeam(firstIndex, secondIndex, isRed,
-               first = 'Attacker', second = 'Defender'):
+               first = 'Attacker', second = 'Attacker'):
   """
   This function should return a list of two agents that will form the
   team, initialized using firstIndex and secondIndex as their agent
@@ -461,16 +461,62 @@ class Defender(MainAgent):
     return random.choice(actions)
 
 class Attacker(MainAgent):
+  def compute_score_map(self, gameState):
+    #print("Computing score map")
+    if(self.isOnRedTeam):
+      food = gameState.getBlueFood()
+      capsule = gameState.getBlueCapsules()
+    else:
+      food = gameState.getRedFood()
+      capsule = gameState.getRedCapsules()
+
+    score_map = []
+
+    for i in range(0, self.layout.width):
+      score_map.append([])
+      for j in range(0, self.layout.height):
+        score_map[i].append(0)
+    for i in range(0, self.layout.width):
+      for j in range(0, self.layout.height):
+        if((i,j) in capsule):
+          food[i][j] = 2
+        if(food[i][j]):
+          score_map[i][j] = food[i][j]
+          for nearbypos in [(0, -1), (0, 1), (-1, 0), (1, 0), (1,-1), (-1, 1), (1,1), (-1,-1)]: # Adjacent squares
+          # Get node position
+            (new_i, new_j) = (i + nearbypos[0], j + nearbypos[1])
+            if(new_i>=0 and new_i<self.layout.width and new_j>=0 and new_j<self.layout.height):
+              if(food[new_i][new_j]):
+                score_map[i][j] += 1
+    for i in range(0, self.layout.width):
+      for j in range(0, self.layout.height):
+        if(score_map[i][j]):
+          for nearbypos in [(0, -1), (0, 1), (-1, 0), (1, 0), (1,-1), (-1, 1), (1,1), (-1,-1)]: # Adjacent squares
+            (new_i, new_j) = (i + nearbypos[0], j + nearbypos[1])
+            if(new_i>=0 and new_i<self.layout.width and new_j>=0 and new_j<self.layout.height):
+              score_map[i][j] += score_map[new_i][new_j]*0.25
+    return score_map
+
   def registerInitialState(self, gameState):
     MainAgent.registerInitialState(self, gameState)
     print("I am an Attacker")
+    self.score_map = self.compute_score_map(gameState)
+    self.last_eaten = 0
+    self.target = None
 
+  
   def chooseAction(self, gameState):
       ##Impelemtn attacker action
+    
     myState = gameState.getAgentState(self.index)
     actions = gameState.getLegalActions(self.index)
     carrying = myState.numCarrying
+    if(self.target is None or self.target == myState.getPosition()):
+      self.score_map = self.compute_score_map(gameState)
     eaten = []
+
+
+   
 
     previous_observation = self.getPreviousObservation()
     if previous_observation is None:
@@ -495,16 +541,70 @@ class Attacker(MainAgent):
     if(myState.isPacman):
       if(not self.wasPacman):
         self.total_food = len(self.getFood(gameState).asList())
+
       #print("I am pacman")
       if(carrying>self.total_food*GO_BACK_PERCENTAGE_THRESHOLD):
-        pass
-        #print("I should go back to the closest inlet")      
-      else:
-                pass
+        inlet_distance = inf
+        path_to_inlet = []
+        for inlet in self.inlets:
 
-        #print("I should go to the closest food")
+          path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), (inlet.start_pos[0], int((inlet.start_pos[1] + inlet.end_pos[1])/2)) , self)
+          if(len(path)<inlet_distance):
+            inlet_distance = len(path)
+            path_to_inlet = path
+        moves = path_to_moves(path_to_inlet)
+        if(len(moves) == 0):
+          #print("Fine")
+          return "Stop"
+        if moves[0] not in actions:
+          print("Azione illegale")
+          return "Stop"
+        myState.wasPacman = myState.isPacman
+  
+        return moves[0]
+
+      else:
+          self.target =  None
+          max_score = 0
+          for i in range(0, self.layout.width):
+            for j in range(0, self.layout.height):
+              if(self.score_map[i][j]>max_score):
+                self.target = (i,j)
+                max_score = self.score_map[i][j]
+          self.debugDraw([self.target], [1,1,1], True)      
+          path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), self.target , self)
+          moves = path_to_moves(path)
+          if(len(moves) == 0):
+            #print("Fine")
+            return "Stop"
+          if moves[0] not in actions:
+            print("Azione illegale")
+            return "Stop"
+          #print("I should go to the best food")
+          myState.wasPacman = myState.isPacman
+          return moves[0]
     else:
-              pass
+          self.target =  None
+          max_score = 0
+          for i in range(0, self.layout.width):
+            for j in range(0, self.layout.height):
+              if(self.score_map[i][j]>max_score):
+                self.target = (i,j)
+                max_score = self.score_map[i][j]
+          path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), self.target , self)
+          self.debugDraw([self.target], [1,1,1], True)      
+
+          moves = path_to_moves(path)
+          if(len(moves) == 0):
+            #print("Fine")
+            return "Stop"
+          if moves[0] not in actions:
+            print("Azione illegale")
+            return "Stop"
+          #print("I should go to the best food")
+          myState.wasPacman = myState.isPacman
+          return moves[0]
+        
 
       #print("Not pacman, I SHOULD GO TO THE ENEMY BASE")
       #to do so, we compute the A* path to the closest food in the enemy base
@@ -512,7 +612,6 @@ class Attacker(MainAgent):
 
 
 
-    actions = gameState.getLegalActions(self.index)
     return random.choice(actions)
 
     
