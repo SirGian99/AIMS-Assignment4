@@ -389,7 +389,17 @@ class Defender(MainAgent):
 
     #First A* test
     """ATTENTION PLEASE: TOY CODE FOR TESTING PURPOSES ONLY"""
-    self.path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), find_target_attack_area(self), self)
+    opponents_pos = [(x,gameState.getAgentPosition(x)) for x in self.getOpponents(gameState)]
+    opponents_pos = [(x,y) for (x,y) in opponents_pos if y is not None]
+    if(len(opponents_pos)>0):
+      closest_opponent = min(opponents_pos, key=lambda x: self.getMazeDistance(myState.getPosition(), x[1]))
+      x = closest_opponent[0]
+      y = closest_opponent[1]
+      target= (x,y)
+      self.path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), target , self)
+    else:
+      self.path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), find_target_attack_area(self) , self)
+    #self.path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), find_target_attack_area(self), self)
     self.debugDraw(self.path, [0,1,0], True)
     moves = path_to_moves(self.path)
     self.move_index +=1
@@ -405,9 +415,22 @@ class Defender(MainAgent):
     """REMOVE THE ABOVE CODE UP TO HERE AND UNCOMMENT THE FOLLOWING"""
 
     if(myState.isPacman):
-      print("Go to the closest inlet and enter your field")
+      print("Go to the closest inlet and enter your field") #lo sto facendo andare al centro del campo
+      middle_index_x = int( self.layout.width / 2)-1
+      vai = False
+      index_y = 9
+      while (vai==True) :
+        if(self.walls[middle_index_x][index_y]):
+          index_y+=1
+        else :
+          vai=True
+
+      self.path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), (middle_index_x,index_y ), self)
+      self.debugDraw(self.path, [0,1,0], True)
+      moves = path_to_moves(self.path)
+      self.move_index +=1
     else:
-      if(myState.scaredTimer>0):
+      if(myState.scaredTimer>0): #same of the next
         print("I should go to the closest pacman to die and respawn")
       else:
         opponents_pos = [(x,gameState.getAgentPosition(x)) for x in self.getOpponents(gameState)]
@@ -419,7 +442,19 @@ class Defender(MainAgent):
           #self.debugDraw([myState.getPosition()], [0,1,0])
         else:#no opponent reachable
           #i should go to the inlet closest to the 
-          print("I should go to the closest inlet and wait to chase a pacman")
+          print("I should go to the closest inlet and wait to chase a pacman") #stessa cosa di se è pacman
+          middle_index_x = int( self.layout.width / 2)-1
+          vai = False
+          index_y = 9
+          while (vai==True) :
+            if(self.walls[middle_index_x][index_y]):
+              index_y+=1
+            else :
+              vai=True
+          self.path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), (middle_index_x,index_y ), self)
+          self.debugDraw(self.path, [0,1,0], True)
+          moves = path_to_moves(self.path)
+          self.move_index +=1
       #to do so, we compute the A* path to the closest food in the enemy base
 
     actions = gameState.getLegalActions(self.index)
@@ -435,6 +470,24 @@ class Attacker(MainAgent):
     myState = gameState.getAgentState(self.index)
     actions = gameState.getLegalActions(self.index)
     carrying = myState.numCarrying
+    eaten = []
+
+    previous_observation = self.getPreviousObservation()
+    if previous_observation is None:
+      previous_observation = gameState
+
+    if(self.isOnRedTeam):
+      food = gameState.getRedFood()
+      old_food = previous_observation.getRedFood()
+    else:
+      food = gameState.getBlueFood()
+      old_food = previous_observation.getBlueFood()
+    
+    for i in range(0, food.width):
+      for j in range(0, food.height):
+        if(not food[i][j] and old_food[i][j]):
+          #self.debugDraw([(i,j)], [1,0,0])
+          eaten.append((i,j))
 
     #print("Legal actions are %s" % actions)
     #print("Possible actions are %s" % self.getPossibleActions(gameState.getAgentPosition(self.index)))
