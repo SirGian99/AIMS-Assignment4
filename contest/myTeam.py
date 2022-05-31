@@ -430,31 +430,28 @@ class Defender(MainAgent):
       moves = path_to_moves(self.path)
       self.move_index +=1
     else:
-      if(myState.scaredTimer>0): #same of the next
-        print("I should go to the closest pacman to die and respawn")
-      else:
-        opponents_pos = [(x,gameState.getAgentPosition(x)) for x in self.getOpponents(gameState)]
-        opponents_pos = [(x,y) for (x,y) in opponents_pos if y is not None]
-        if(len(opponents_pos)>0):
-          closest_opponent = min(opponents_pos, key=lambda x: self.getMazeDistance(myState.getPosition(), x[1])) #not sure of this
-          print("I should go to the closest opponent to eat him")
-          #self.debugDraw([closest_opponent[1]], [1,1,1])
-          #self.debugDraw([myState.getPosition()], [0,1,0])
-        else:#no opponent reachable
-          #i should go to the inlet closest to the 
-          print("I should go to the closest inlet and wait to chase a pacman") #stessa cosa di se è pacman
-          middle_index_x = int( self.layout.width / 2)-1
-          vai = False
-          index_y = 9
-          while (vai==True) :
-            if(self.walls[middle_index_x][index_y]):
-              index_y+=1
-            else :
-              vai=True
-          self.path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), (middle_index_x,index_y ), self)
-          self.debugDraw(self.path, [0,1,0], True)
-          moves = path_to_moves(self.path)
-          self.move_index +=1
+      opponents_pos = [(x,gameState.getAgentPosition(x)) for x in self.getOpponents(gameState)]
+      opponents_pos = [(x,y) for (x,y) in opponents_pos if y is not None]
+      if(len(opponents_pos)>0):
+        closest_opponent = min(opponents_pos, key=lambda x: self.getMazeDistance(myState.getPosition(), x[1])) #not sure of this
+        print("I should go to the closest opponent to eat him")
+        #self.debugDraw([closest_opponent[1]], [1,1,1])
+        #self.debugDraw([myState.getPosition()], [0,1,0])
+      else:#no opponent reachable
+      #i should go to the inlet closest to the 
+        print("I should go to the closest inlet and wait to chase a pacman") #stessa cosa di se è pacman
+        middle_index_x = int( self.layout.width / 2)-1
+        vai = False
+        index_y = 9
+        while (vai==True) :
+          if(self.walls[middle_index_x][index_y]):
+            index_y+=1
+          else :
+            vai=True
+        self.path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), (middle_index_x,index_y ), self)
+        self.debugDraw(self.path, [0,1,0], True)
+        moves = path_to_moves(self.path)
+        self.move_index +=1
       #to do so, we compute the A* path to the closest food in the enemy base
 
     actions = gameState.getLegalActions(self.index)
@@ -572,6 +569,7 @@ class Attacker(MainAgent):
                 self.target = (i,j)
                 max_score = self.score_map[i][j]
           self.debugDraw([self.target], [1,1,1], True)      
+          self.debugDraw([(20.0, 10.0),(16,2)], [1,0,0], True)
           path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), self.target , self)
           moves = path_to_moves(path)
           if(len(moves) == 0):
