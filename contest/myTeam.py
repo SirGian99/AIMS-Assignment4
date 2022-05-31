@@ -70,7 +70,7 @@ def path_to_moves(path):
 #################
 
 def createTeam(firstIndex, secondIndex, isRed,
-               first = 'Attacker', second = 'Attacker'):
+               first = 'Attacker', second = 'Defender'):
   """
   This function should return a list of two agents that will form the
   team, initialized using firstIndex and secondIndex as their agent
@@ -395,8 +395,8 @@ class Defender(MainAgent):
     opponents_pos = [(x,y) for (x,y) in opponents_pos if y is not None]
     if(len(opponents_pos)>0):
       closest_opponent = min(opponents_pos, key=lambda x: self.getMazeDistance(myState.getPosition(), x[1]))
-      x = closest_opponent[0]
-      y = closest_opponent[1]
+      x = closest_opponent[1][0]
+      y = closest_opponent[1][1]
       target= (x,y)
       self.path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), target , self)
     else:
