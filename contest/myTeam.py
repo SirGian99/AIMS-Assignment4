@@ -13,6 +13,7 @@
 
 
 from __future__ import annotations
+from distutils.log import debug
 
 from math import inf
 from typing import Tuple 
@@ -147,16 +148,16 @@ class MainAgent(CaptureAgent) :
     for i in range(self.layout.height):
       if(walls[middle_index][current_inlet_start_y]):
         current_inlet_start_y += 1
-        i = current_inlet_start_y+1
-      if(walls[middle_index][i] and current_inlet_start_y != i):
-        self.inlets.append(Inlet((middle_index, current_inlet_start_y), (middle_index, i)))
+        i = current_inlet_start_y
+      if(walls[middle_index][i]):
+        self.inlets.append(Inlet((middle_index, current_inlet_start_y), (middle_index, i-1)))
         current_inlet_start_y = i+1
 
     """for x in self.wallsDict.keys():
       self.debugDraw([x], [0,0,1])"""
     
     for inlet in self.inlets:
-      for i in range(inlet.start_pos[1], inlet.end_pos[1]):
+      for i in range(inlet.start_pos[1], inlet.end_pos[1]+1):
         self.debugDraw([(inlet.start_pos[0], i)], [1,1,0] if self.isOnRedTeam else [0,1,1])
 
     print("The field sixe is %d %d" % (self.layout.width, self.layout.height))
@@ -259,6 +260,7 @@ def astar(maze : list[list[bool]], start : Position, end : Position, agent: Main
             # Create the f, g, and h values
             child.g = current_node.g + position_cost(current_node, agent)
             # We could also use 'agent.getMazeDistance' if we had access to that
+            child.position = (int (child.position[0]), int (child.position[1]))
             child.h = agent.getMazeDistance(child.position, end_node.position)
             
             #child.h = calculate_h(child,end_node)
@@ -508,6 +510,7 @@ class Attacker(MainAgent):
   def chooseAction(self, gameState):
       ##Impelemtn attacker action
     
+    self.debugDraw([(23, 10), (16, 2)], [1,0,1])
     myState = gameState.getAgentState(self.index)
     actions = gameState.getLegalActions(self.index)
     carrying = myState.numCarrying
@@ -547,7 +550,6 @@ class Attacker(MainAgent):
         inlet_distance = inf
         path_to_inlet = []
         for inlet in self.inlets:
-
           path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), (inlet.start_pos[0], int((inlet.start_pos[1] + inlet.end_pos[1])/2)) , self)
           if(len(path)<inlet_distance):
             inlet_distance = len(path)
@@ -568,10 +570,11 @@ class Attacker(MainAgent):
           max_score = 0
           for i in range(0, self.layout.width):
             for j in range(0, self.layout.height):
-              if(self.score_map[i][j]>max_score):
+              if(self.score_map[i][j]>max_score and self.walls[i][j]==False):
                 self.target = (i,j)
                 max_score = self.score_map[i][j]
-          self.debugDraw([self.target], [1,1,1], True)      
+          #self.debugDraw([self.target], [1,1,1])      
+          #print("Il mio target è", self.target)
           path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), self.target , self)
           moves = path_to_moves(path)
           if(len(moves) == 0):
@@ -588,11 +591,12 @@ class Attacker(MainAgent):
           max_score = 0
           for i in range(0, self.layout.width):
             for j in range(0, self.layout.height):
-              if(self.score_map[i][j]>max_score):
+              if(self.score_map[i][j]>max_score and self.walls[i][j]==False):
                 self.target = (i,j)
                 max_score = self.score_map[i][j]
+          #print("Il mio target è", self.target)
           path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), self.target , self)
-          self.debugDraw([self.target], [1,1,1], True)      
+          #self.debugDraw([self.target], [1,1,1])      
 
           moves = path_to_moves(path)
           if(len(moves) == 0):
