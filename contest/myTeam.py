@@ -13,6 +13,7 @@
 
 
 from __future__ import annotations
+from distutils.log import debug
 
 from math import inf
 from typing import Tuple 
@@ -544,7 +545,7 @@ class Attacker(MainAgent):
         inlet_distance = inf
         path_to_inlet = []
         for inlet in self.inlets:
-
+          
           path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), (inlet.start_pos[0], int((inlet.start_pos[1] + inlet.end_pos[1])/2)) , self)
           if(len(path)<inlet_distance):
             inlet_distance = len(path)
@@ -568,8 +569,7 @@ class Attacker(MainAgent):
               if(self.score_map[i][j]>max_score):
                 self.target = (i,j)
                 max_score = self.score_map[i][j]
-          self.debugDraw([self.target], [1,1,1], True)      
-          self.debugDraw([(20.0, 10.0),(16,2)], [1,0,0], True)
+          self.debugDraw([self.target], [1,1,1], True)  
           path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), self.target , self)
           moves = path_to_moves(path)
           if(len(moves) == 0):
