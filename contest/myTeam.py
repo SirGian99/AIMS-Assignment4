@@ -15,8 +15,10 @@
 from __future__ import annotations
 from distutils.log import debug
 
-from math import inf
-from typing import Tuple 
+from math import inf, exp
+from time import sleep
+from typing import Tuple
+from xxlimited import foo 
 from capture import GameState
 from captureAgents import CaptureAgent
 
@@ -25,6 +27,7 @@ from game import AgentState, Actions
 import game
 
 GO_BACK_PERCENTAGE_THRESHOLD = 0.5
+MAX_COUNTER = 300
 
 class Inlet:
   def __init__(self, start_pos, end_pos):
@@ -138,6 +141,7 @@ class MainAgent(CaptureAgent) :
     self.wasPacman = False
     self.inlets = []
     walls = gameState.getWalls()
+    self.counter = -1
 
     if(self.isOnRedTeam):
       middle_index = int( self.layout.width / 2)-1
@@ -298,16 +302,17 @@ def position_cost(current_node : Node, agent : MainAgent):
 
     # TODO ajust magic numbers
     if node_is_enemy:
-      return inf if myState.scaredTimer == 0 else 0 # Please don't hurt me :( (but only if you are scary)
+      return inf if myState.isPacman or (not myState.isPacman and myState.scaredTimer == 0) else 0 # Please don't hurt me :( (but only if you are scary)
     elif node_is_food:
-      return 5 # Yummy
+      return 2.5 # Yummy
     elif node_is_powerup:
       return 1 # even more yummy
     
     return 10 # We could make this dynamic based on the amount of food left
 
   else: # We are a defender 
-
+    if node_is_enemy:
+      return 0
     return 1
 
 def find_target_attack_area( agent : MainAgent):
@@ -371,11 +376,11 @@ class Defender(MainAgent):
       previous_observation = gameState
 
     if(self.isOnRedTeam):
-      food = gameState.getRedFood()
-      old_food = previous_observation.getRedFood()
-    else:
       food = gameState.getBlueFood()
       old_food = previous_observation.getBlueFood()
+    else:
+      food = gameState.getRedFood()
+      old_food = previous_observation.getRedFood()
     
     for i in range(0, food.width):
       for j in range(0, food.height):
@@ -512,7 +517,11 @@ class Attacker(MainAgent):
   
   def chooseAction(self, gameState):
       ##Impelemtn attacker action
+    sleep(0)
+    self.counter += 1
     
+    
+
     myState = gameState.getAgentState(self.index)
     actions = gameState.getLegalActions(self.index)
     carrying = myState.numCarrying
@@ -548,7 +557,7 @@ class Attacker(MainAgent):
         self.total_food = len(self.getFood(gameState).asList())
 
       ##print("I am pacman")
-      if(carrying>self.total_food*GO_BACK_PERCENTAGE_THRESHOLD):
+      if(carrying>self.total_food*(GO_BACK_PERCENTAGE_THRESHOLD) * (0.5 if self.counter/MAX_COUNTER>0.85 else 1)):#*exp(self.counter/70)/10
         inlet_distance = inf
         path_to_inlet = []
         for inlet in self.inlets:
@@ -577,8 +586,46 @@ class Attacker(MainAgent):
                 max_score = self.score_map[i][j]
           #self.debugDraw([self.target], [1,1,1])      
           ##print("Il mio target è", self.target)
-          path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), self.target , self)
+          my_position = myState.getPosition()
+          my_position = (int (my_position[0]), int (my_position[1]))
+          path = astar(self.walls, my_position, self.target , self)
           moves = path_to_moves(path)
+          max_score_position = None
+          max_score = 0
+
+          observable_enemies = list(filter(
+          lambda pos : pos != None,
+            map(
+              lambda index : gameState.getAgentPosition(index),
+              self.getOpponents(gameState)
+            )
+            ))
+          if(self.isOnRedTeam):
+            food = gameState.getBlueFood()
+          else:
+            food = gameState.getRedFood()
+          for nearbypos in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
+            #print("C'è food in ", (my_position[0]+nearbypos[0], my_position[1]+nearbypos[1]), ":", food[my_position[0]+nearbypos[0]][my_position[1]+nearbypos[1]])
+            if(food[my_position[0]+nearbypos[0]][my_position[1]+nearbypos[1]] and len(observable_enemies)==0):
+              score = self.score_map[my_position[0]+nearbypos[0]][my_position[1]+nearbypos[1]]
+              if(score>max_score):
+                max_score = score
+                max_score_position = (my_position[0]+nearbypos[0], my_position[1]+nearbypos[1])
+          if max_score_position is not None:
+            print("FACCIO L'HILLING VERSO ", max_score_position)
+            sleep(1)
+            path = astar(self.walls, my_position, max_score_position , self)
+            moves = path_to_moves(path)
+            if(len(moves) == 0):
+              ##print("Fine")
+              return "Stop"
+            if moves[0] not in actions:
+              #print("Azione illegale")
+              return "Stop"
+            return moves[0]      
+
+
+
           if(len(moves) == 0):
             ##print("Fine")
             return "Stop"
