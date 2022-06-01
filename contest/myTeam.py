@@ -16,6 +16,7 @@ from __future__ import annotations
 from distutils.log import debug
 
 from math import inf, exp
+from re import M
 from time import sleep
 from typing import Tuple
 from xxlimited import foo 
@@ -34,6 +35,8 @@ class Inlet:
     self.start_pos = start_pos
     self.end_pos = end_pos
     self.size = util.manhattanDistance(start_pos, end_pos)
+  def get_center(self):
+    return (int ((self.start_pos[0] + self.end_pos[0]) / 2), int((self.start_pos[1] + self.end_pos[1]) / 2))
 
 Position = Tuple[int, int]
 
@@ -63,6 +66,7 @@ def path_to_moves(path):
   """
   moves = []
   for i in range(len(path)-1):
+
     vector = (path[i+1][0] - path[i][0], path[i+1][1] - path[i][1])
     direction = Actions.vectorToDirection(vector)
     moves.append(direction)
@@ -144,17 +148,17 @@ class MainAgent(CaptureAgent) :
     self.counter = -1
 
     if(self.isOnRedTeam):
-      middle_index = int( self.layout.width / 2)-1
+      self.middle_index = int( self.layout.width / 2)-1
     else:
-      middle_index = int( self.layout.width / 2)
+      self.middle_index = int( self.layout.width / 2)
     
     current_inlet_start_y = 0
     for i in range(self.layout.height):
-      if(walls[middle_index][current_inlet_start_y]):
+      if(walls[self.middle_index][current_inlet_start_y]):
         current_inlet_start_y += 1
         i = current_inlet_start_y
-      if(walls[middle_index][i]):
-        self.inlets.append(Inlet((middle_index, current_inlet_start_y), (middle_index, i-1)))
+      if(walls[self.middle_index][i]):
+        self.inlets.append(Inlet((self.middle_index, current_inlet_start_y), (self.middle_index, i-1)))
         current_inlet_start_y = i+1
 
     """for x in self.wallsDict.keys():
@@ -187,7 +191,7 @@ class MainAgent(CaptureAgent) :
 
 # Function has to be here such that we can reference 'MainAgent'
 
-def astar(maze : list[list[bool]], start : Position, end : Position, agent: MainAgent):
+def astar(maze : list[list[bool]], start : Position, end : Position, agent: MainAgent, return_cost: bool = False):
     """Returns a list of tuples as a path from the given start to the given end in the given maze"""
 
     ##print("going from node " + str(start) + " to node " + str(end))
@@ -227,7 +231,7 @@ def astar(maze : list[list[bool]], start : Position, end : Position, agent: Main
             while current is not None:
                 path.append(current.position)
                 current = current.parent
-            return path[::-1] # Return reversed path
+            return path[::-1] if not return_cost else (path[::-1], current_node.f)# Return reversed path
 
         # Generate children
         children = []
@@ -315,7 +319,7 @@ def position_cost(current_node : Node, agent : MainAgent):
       return 0
     return 1
 
-def find_target_attack_area( agent : MainAgent):
+def find_target_attack_area( agent : Defender, eaten_food: list[Position]):
   
   gameState : GameState = agent.getCurrentObservation()
   myState : AgentState = gameState.getAgentState(agent.index)
@@ -326,27 +330,90 @@ def find_target_attack_area( agent : MainAgent):
         agent.getOpponents(gameState)
       )
       ))
+  
+  if(len(observable_enemies)>0):
+    enemy_pos = observable_enemies[0]
+    enemy_pos = (int(enemy_pos[0]), int(enemy_pos[1]))
+    return enemy_pos
+  else:
+    if(len(eaten_food)>0): #faccio un tradeoff in base a distanza e score del punto mangiato
+      max_cost = inf
+      final_path = None
+      for food in eaten_food:
+        food_pos = (int(food[0]), int(food[1]))
+        path, cost = astar(agent.walls, myState.getPosition(), food_pos, agent, True)
+        score = agent.score_map[food_pos[0]][food_pos[1]]
+        if(score == 0):
+          agent.score_map = agent.compute_score_map(gameState)
+          score = agent.score_map[food_pos[0]][food_pos[1]]
+          if(score == 0): #this means the eaten food was alone in the map and it is not worth to go there
+            score = 1
+        print("E' stato mangiato cibo in posizione: ", (food_pos), " con score ", score)
+        sleep(0.2)
+        if(cost/score<max_cost):
+          max_cost = cost/score
+          final_path = path
+      return final_path[-1]
+    else:
+        return agent.path_to_closest_inlet(gameState)[-1]
 
-  return (20, 9)
 
-  for nearbypos in [(0, -1), (0, 1), (-1, 0), (1, 0)]: # Adjacent squares
-    # Get node position
-    node_position = (current_node.position[0] + nearbypos[0], current_node.position[1] + nearbypos[1])
-    # Create new node
-    new_node = Node(current_node, node_position)
-    # Append
-    nearby.append(new_node)
-    foodmatrix =self.getFood(gameState)
-    # Loop through nearby
-    for nearnode in nearby:
-      if foodmatrix[node_position[0],node_position[1]]==1:
-        current_node.h-=1 #?
- 
+
+  
 
 
     
 
 class Defender(MainAgent):
+  def compute_score_map(self, gameState):
+    ##print("Computing score map")
+    if(not self.isOnRedTeam):
+      food = gameState.getBlueFood()
+      capsule = gameState.getBlueCapsules()
+    else:
+      food = gameState.getRedFood()
+      capsule = gameState.getRedCapsules()
+
+    score_map = []
+
+    for i in range(0, self.layout.width):
+      score_map.append([])
+      for j in range(0, self.layout.height):
+        score_map[i].append(0)
+    for i in range(0, self.layout.width):
+      for j in range(0, self.layout.height):
+        if((i,j) in capsule):
+          score_map[i][j] = 2
+          food[i][j] = True
+        if(food[i][j]):
+          score_map[i][j] = 1
+          for nearbypos in [(0, -1), (0, 1), (-1, 0), (1, 0), (1,-1), (-1, 1), (1,1), (-1,-1)]: # Adjacent squares
+          # Get node position
+            (new_i, new_j) = (i + nearbypos[0], j + nearbypos[1])
+            if(new_i>=0 and new_i<self.layout.width and new_j>=0 and new_j<self.layout.height):
+              score_map[i][j] += score_map[new_i][new_j]
+    for i in range(0, self.layout.width):
+      for j in range(0, self.layout.height):
+        if(score_map[i][j]):
+          for nearbypos in [(0, -1), (0, 1), (-1, 0), (1, 0), (1,-1), (-1, 1), (1,1), (-1,-1)]: # Adjacent squares
+            (new_i, new_j) = (i + nearbypos[0], j + nearbypos[1])
+            if(new_i>=0 and new_i<self.layout.width and new_j>=0 and new_j<self.layout.height):
+              #break
+              score_map[i][j] += score_map[new_i][new_j]*0.5
+              if(not food[i][j]):
+                score_map[i][j]=0
+    return score_map
+
+  def path_to_closest_inlet(self, gameState):
+    myState = gameState.getAgentState(self.index)
+    path = None
+    for inlet in self.inlets:
+      inlet_middle = inlet.get_center()
+      path_to_inlet = astar(self.walls, myState.getPosition(), inlet_middle, self)
+      if(path is None or len(path)>len(path_to_inlet)):
+        path = path_to_inlet
+    return path
+
   def registerInitialState(self, gameState):
     MainAgent.registerInitialState(self, gameState)
     #self.debugDraw([(33,17)], [1,0,0])
@@ -361,12 +428,13 @@ class Defender(MainAgent):
     #print("ATTENTION REQUIRED ON LINE 354")
     self.move_index = 0
     self.previousPosition = gameState.getAgentState(self.index).getPosition()
+    self.score_map = self.compute_score_map(gameState)
+
 
   def chooseAction(self, gameState):
       ##Impelemtn attacker action
     myState = gameState.getAgentState(self.index)
     actions = gameState.getLegalActions(self.index)
-    carrying = myState.numCarrying
     eaten = [] #list containing the position where food has been eaten
 
     ##print("I'm agent ", self.index, " at position ", myState.getPosition())
@@ -375,7 +443,8 @@ class Defender(MainAgent):
     if previous_observation is None:
       previous_observation = gameState
 
-    if(self.isOnRedTeam):
+
+    if(not self.isOnRedTeam):
       food = gameState.getBlueFood()
       old_food = previous_observation.getBlueFood()
     else:
@@ -387,82 +456,68 @@ class Defender(MainAgent):
         if(not food[i][j] and old_food[i][j]):
           #self.debugDraw([(i,j)], [1,0,0])
           eaten.append((i,j))
-  
+
+
+
     ##print("Legal actions are %s" % actions)
     ##print("Possible actions are %s" % self.getPossibleActions(gameState.getAgentPosition(self.index)))
 
 
     #Defensive algo
 
-    #First A* test
-    """ATTENTION PLEASE: TOY CODE FOR TESTING PURPOSES ONLY"""
-    opponents_pos = [(x,gameState.getAgentPosition(x)) for x in self.getOpponents(gameState)]
-    opponents_pos = [(x,y) for (x,y) in opponents_pos if y is not None]
-    if(len(opponents_pos)>0):
-      closest_opponent = min(opponents_pos, key=lambda x: self.getMazeDistance(myState.getPosition(), x[1]))
-      x = closest_opponent[1][0]
-      y = closest_opponent[1][1]
-      target= (x,y)
-      self.path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), target , self)
-    else:
-      self.path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), find_target_attack_area(self) , self)
-    #self.path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), find_target_attack_area(self), self)
-    #self.debugDraw(self.path, [0,1,0], True)
-    moves = path_to_moves(self.path)
-    self.move_index +=1
+    if(not myState.isPacman): #if not pacman, chase an opponent if possible
 
-    if(len(moves) == 0):
-      ##print("Fine")
-      return "Stop"
-    if moves[0] not in gameState.getLegalActions(self.index):
-      #print("Azione illegale")
-      return "Stop"
-    return moves[0]
-
-    """REMOVE THE ABOVE CODE UP TO HERE AND UNCOMMENT THE FOLLOWING"""
-
-    if(myState.isPacman):
-      #print("Go to the closest inlet and enter your field") #lo sto facendo andare al centro del campo
-      middle_index_x = int( self.layout.width / 2)-1
-      vai = False
-      index_y = 9
-      while (vai==True) :
-        if(self.walls[middle_index_x][index_y]):
-          index_y+=1
-        else :
-          vai=True
-
-      self.path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), (middle_index_x,index_y ), self)
-      self.debugDraw(self.path, [0,1,0], True)
-      moves = path_to_moves(self.path)
-      self.move_index +=1
-    else:
+      
       opponents_pos = [(x,gameState.getAgentPosition(x)) for x in self.getOpponents(gameState)]
       opponents_pos = [(x,y) for (x,y) in opponents_pos if y is not None]
       if(len(opponents_pos)>0):
-        closest_opponent = min(opponents_pos, key=lambda x: self.getMazeDistance(myState.getPosition(), x[1])) #not sure of this
-        #print("I should go to the closest opponent to eat him")
-        #self.debugDraw([closest_opponent[1]], [1,1,1])
-        #self.debugDraw([myState.getPosition()], [0,1,0])
-      else:#no opponent reachable
-        #i should go to the inlet closest to the 
-        #print("I should go to the closest inlet and wait to chase a pacman") #stessa cosa di se è pacman
-        middle_index_x = int( self.layout.width / 2)-1
-        vai = False
-        index_y = 9
-        while (vai==True) :
-          if(self.walls[middle_index_x][index_y]):
-            index_y+=1
-          else :
-            vai=True
-        self.path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), (middle_index_x,index_y ), self)
-        self.debugDraw(self.path, [0,1,0], True)
-        moves = path_to_moves(self.path)
-        self.move_index +=1
-      #to do so, we compute the A* path to the closest food in the enemy base
+        closest_opponent = min(opponents_pos, key=lambda x: self.getMazeDistance(myState.getPosition(), x[1]))
+        x = closest_opponent[1][0]
+        y = closest_opponent[1][1]
+        target= (x,y)
+        self.path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), target , self)
+      else: #if no opponent is visible, do infer the best position to go
+        self.path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), find_target_attack_area(self, eaten) , self)
+      #self.path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), find_target_attack_area(self), self)
+      #self.debugDraw(self.path, [0,1,0], True)
+            
+      if(len(eaten)>0):
+        self.score_map = self.compute_score_map(gameState)
 
-    actions = gameState.getLegalActions(self.index)
-    return random.choice(actions)
+      moves = path_to_moves(self.path)
+      
+      if(len(moves) == 0):
+        ##print("Fine")
+        return "Stop"
+      if(self.isOnRedTeam and self.path[1][0]> self.middle_index or not self.isOnRedTeam and self.path[1][0]< self.middle_index):
+        return "Stop"
+
+      if moves[0] not in gameState.getLegalActions(self.index):
+        #print("Azione illegale")
+        return "Stop"
+      return moves[0]
+    else: #if pacman, go to the closest inlet
+            
+      if(len(eaten)>0):
+        self.score_map = self.compute_score_map(gameState)
+
+      #print("Go to the closest inlet and enter your field") #lo sto facendo andare al centro del campo
+      path = None
+      for inlet in self.inlets:
+        inlet_middle = inlet.get_center()
+        path_to_inlet = astar(self.walls, myState.getPosition(), inlet_middle, self)
+        if(path is None or len(path)>len(path_to_inlet)):
+          path = path_to_inlet
+
+      moves = path_to_moves(path)
+      if(len(moves) == 0):
+        ##print("Fine")
+        return "Stop"
+      if moves[0] not in gameState.getLegalActions(self.index):
+        #print("Azione illegale")
+        return "Stop"
+      return moves[0]
+  
 
 class Attacker(MainAgent):
   def compute_score_map(self, gameState):
@@ -523,6 +578,8 @@ class Attacker(MainAgent):
     
 
     myState = gameState.getAgentState(self.index)
+    my_position = myState.getPosition()
+    my_position = (int (my_position[0]), int (my_position[1]))
     actions = gameState.getLegalActions(self.index)
     carrying = myState.numCarrying
     if(self.target is None or self.target == myState.getPosition()):
@@ -555,13 +612,34 @@ class Attacker(MainAgent):
     if(myState.isPacman):
       if(not self.wasPacman):
         self.total_food = len(self.getFood(gameState).asList())
+      
+      if(carrying>2):
+        path_to_inlet = None
+        for inlet in self.inlets:
+          if(abs(my_position[0] - inlet.get_center()[0])==1):
+            inlet_distance = 1
+            path_to_inlet = [my_position,(inlet.start_pos[0], my_position[1])]
+            break
+        if(path_to_inlet is not None):
+          moves = path_to_moves(path_to_inlet)
+          if(len(moves) == 0):
+            ##print("Fine")
+            return "Stop"
+          if moves[0] not in gameState.getLegalActions(self.index):
+            #print("Azione illegale")
+            return "Stop"
+          return moves[0]
 
       ##print("I am pacman")
       if(carrying>self.total_food*(GO_BACK_PERCENTAGE_THRESHOLD) * (0.5 if self.counter/MAX_COUNTER>0.85 else 1)):#*exp(self.counter/70)/10
         inlet_distance = inf
         path_to_inlet = []
         for inlet in self.inlets:
-          path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), (inlet.start_pos[0], int((inlet.start_pos[1] + inlet.end_pos[1])/2)) , self)
+          if(abs(my_position[0] - inlet.get_center()[0])==1):
+            inlet_distance = 1
+            path_to_inlet = [my_position,(inlet.start_pos[0], my_position[1])]
+            break
+          path = astar(self.walls, my_position, (inlet.start_pos[0], int((inlet.start_pos[1] + inlet.end_pos[1])/2)) , self)
           if(len(path)<inlet_distance):
             inlet_distance = len(path)
             path_to_inlet = path
@@ -586,8 +664,6 @@ class Attacker(MainAgent):
                 max_score = self.score_map[i][j]
           #self.debugDraw([self.target], [1,1,1])      
           ##print("Il mio target è", self.target)
-          my_position = myState.getPosition()
-          my_position = (int (my_position[0]), int (my_position[1]))
           path = astar(self.walls, my_position, self.target , self)
           moves = path_to_moves(path)
           max_score_position = None
@@ -602,8 +678,15 @@ class Attacker(MainAgent):
             ))
           if(self.isOnRedTeam):
             food = gameState.getBlueFood()
+            for pos in gameState.getBlueCapsules():
+              food[pos[0]][pos[1]] = True
+              self.score_map[pos[0]][pos[1]] +=2
           else:
             food = gameState.getRedFood()
+            for pos in gameState.getRedCapsules():
+              self.score_map[pos[0]][pos[1]] +=2
+              food[pos[0]][pos[1]] = True
+          
           for nearbypos in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
             #print("C'è food in ", (my_position[0]+nearbypos[0], my_position[1]+nearbypos[1]), ":", food[my_position[0]+nearbypos[0]][my_position[1]+nearbypos[1]])
             if(food[my_position[0]+nearbypos[0]][my_position[1]+nearbypos[1]] and len(observable_enemies)==0):
@@ -613,7 +696,7 @@ class Attacker(MainAgent):
                 max_score_position = (my_position[0]+nearbypos[0], my_position[1]+nearbypos[1])
           if max_score_position is not None:
             print("FACCIO L'HILLING VERSO ", max_score_position)
-            sleep(1)
+            sleep(0.1)
             path = astar(self.walls, my_position, max_score_position , self)
             moves = path_to_moves(path)
             if(len(moves) == 0):
@@ -624,8 +707,6 @@ class Attacker(MainAgent):
               return "Stop"
             return moves[0]      
 
-
-
           if(len(moves) == 0):
             ##print("Fine")
             return "Stop"
@@ -635,7 +716,7 @@ class Attacker(MainAgent):
           ##print("I should go to the best food")
           myState.wasPacman = myState.isPacman
           return moves[0]
-    else:
+    else: #I'm not pacman
           self.target =  None
           max_score = 0
           for i in range(0, self.layout.width):
@@ -657,67 +738,3 @@ class Attacker(MainAgent):
           ##print("I should go to the best food")
           myState.wasPacman = myState.isPacman
           return moves[0]
-        
-
-      ##print("Not pacman, I SHOULD GO TO THE ENEMY BASE")
-      #to do so, we compute the A* path to the closest food in the enemy base
-    myState.wasPacman = myState.isPacman
-
-
-
-    return random.choice(actions)
-
-    
-    """
-    
-    def astar_flami(self,  startNode,  targetNode, actions: list):
-    openList = list(Node)
-    closedList = list(Node)
-    openList.append(startNode)
-
-    while openList.count > 0:
-      currentNode = openList[0] ##todo find node with smallest f value
-      openList.remove(currentNode)
-      closedList.append(currentNode)
-      currentIndex = 0
-      for index, item in enumerate(openList):
-        if item.f < currentNode.f:
-          currentNode = item
-          currentIndex = index
-      openList.pop(currentIndex)
-      closedList.append(currentNode)
-
-      if targetNode == currentNode:
-        path = []
-        current = currentNode
-        while current.parent:
-          path.append(current.position)
-          current = current.parent
-        return path[::-1] # Return reversed path
-      
-      children = list(Node)
-      if (actions.__contains__('North')):
-        children.append((currentNode[0][0], currentNode[0][1]+1)) # append node above currentNode
-      if (actions.__contains__('South')):
-        children.append((currentNode[0][0], currentNode[0][1]-1)) # append node below currentNode
-      if (actions.__contains__('West')):
-        children.append((currentNode[0][0]-1, currentNode[0][1])) # append node left to currentNode
-      if (actions.__contains__('East')):
-        children.append((currentNode[0][0]+1, currentNode[0][1])) # append node right to currentNode
-      
-      for child in children:
-        if closedList.__contains__(child):
-          continue
-        child.g = self.calculateCost(startNode, currentNode)
-        child.h = self.calculateCost(currentNode, targetNode)
-        child.f = self.calculateCost(startNode, targetNode)
-        if (openList.__contains__(child)):
-          if (child.g > self.calculateCost(child, currentNode)):
-            continue
-        openList.append(child)
-
-  def calculateCost(startNode, endNode):
-    return abs(startNode[0][0] - endNode[0][0]) + abs(startNode[0][1] - endNode[0][1])
-    
-    
-    """
