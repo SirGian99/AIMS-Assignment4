@@ -19,7 +19,6 @@ from math import inf, exp
 from re import M
 from time import sleep
 from typing import Tuple
-from xxlimited import foo 
 from capture import GameState
 from captureAgents import CaptureAgent
 
