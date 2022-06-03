@@ -129,8 +129,8 @@ class MainAgent(CaptureAgent) :
     '''
     CaptureAgent.registerInitialState(self, gameState)
     #for line in self.getFood(gameState):
-    ##  ###print('  '.join(map(str, line)))
-    ####print(self.getTeam(gameState))
+    ##  ####print('  '.join(map(str, line)))
+    #####print(self.getTeam(gameState))
     
 
     '''
@@ -163,14 +163,14 @@ class MainAgent(CaptureAgent) :
         current_inlet_start_y = i+1
 
     """for x in self.wallsDict.keys():
-      self.debugDraw([x], [0,0,1])"""
+      #self.debugDraw([x], [0,0,1])"""
     
     for inlet in self.inlets:
       for i in range(inlet.start_pos[1], inlet.end_pos[1]+1):
         break
-        self.debugDraw([(inlet.start_pos[0], i)], [1,1,0] if self.isOnRedTeam else [0,1,1])
+        #self.debugDraw([(inlet.start_pos[0], i)], [1,1,0] if self.isOnRedTeam else [0,1,1])
 
-    ##print("The field sixe is %d %d" % (self.layout.width, self.layout.height))
+    ###print("The field sixe is %d %d" % (self.layout.width, self.layout.height))
 
 
 
@@ -179,9 +179,9 @@ class MainAgent(CaptureAgent) :
     Picks among actions randomly.
     """
     #actions = gameState.getLegalActions(self.index)
-    ####print("choose action")
+    #####print("choose action")
 
-    ####print(self.getFood(self, gameState))
+    #####print(self.getFood(self, gameState))
 
     '''
     You should change this in your own agent.
@@ -196,7 +196,7 @@ class MainAgent(CaptureAgent) :
 def astar(maze : list[list[bool]], start : Position, end : Position, agent: MainAgent, return_cost: bool = False, is_invincible: bool = False):
     """Returns a list of tuples as a path from the given start to the given end in the given maze"""
 
-    ###print("going from node " + str(start) + " to node " + str(end))
+    ####print("going from node " + str(start) + " to node " + str(end))
 
     # Create start and end node
     start_node = Node(None, start)
@@ -211,7 +211,7 @@ def astar(maze : list[list[bool]], start : Position, end : Position, agent: Main
 
     # Loop until you find the end
     while len(open_list) > 0:
-        ###print("open list length: " + str(len(open_list)))
+        ####print("open list length: " + str(len(open_list)))
 
         # Get the current node
         current_node = random.sample(open_list, 1)[0]
@@ -343,7 +343,7 @@ def find_target_attack_area( agent : Defender, eaten_food: list[Position]):
         score = agent.score_map[food_pos[0]][food_pos[1]]
         if(score == 0): #this means the eaten food was alone in the map and it is not worth to go there
           score = 1
-      #print("E' stato mangiato cibo in posizione: ", (food_pos), " con score ", score)
+      ##print("E' stato mangiato cibo in posizione: ", (food_pos), " con score ", score)
       #######sleep(0.1)
       if(cost/score<max_cost):
         max_cost = cost/score
@@ -364,7 +364,7 @@ def find_target_attack_area( agent : Defender, eaten_food: list[Position]):
 class Defender(MainAgent):
       
   def compute_score_map(self, gameState):
-    ###print("Computing score map")
+    ####print("Computing score map")
     if(not self.isOnRedTeam):
       food = gameState.getBlueFood()
       capsule = gameState.getBlueCapsules()
@@ -436,16 +436,16 @@ class Defender(MainAgent):
   def registerInitialState(self, gameState):
     MainAgent.registerInitialState(self, gameState)
     self.isAttacker = False
-    #self.debugDraw([(33,17)], [1,0,0])
+    ##self.debugDraw([(33,17)], [1,0,0])
     self.path = []
     #if(self.index==3):
      # self.path = []#astar(gameState.getWalls().data, gameState.getAgentState(self.index).getPosition(),gameState.getAgentState(self.index-1).getPosition())
-      ###print(self.path)
+      ####print(self.path)
       #for i in range(len(self.path)):
-       # self.debugDraw([self.path[i]], [0,1,0])
-    ##print(path_to_moves(self.path))
-    ##print("I am a Defender ", self.index, "at position ", gameState.getAgentState(self.index).getPosition())
-    ##print("ATTENTION REQUIRED ON LINE 354")
+       # #self.debugDraw([self.path[i]], [0,1,0])
+    ###print(path_to_moves(self.path))
+    ###print("I am a Defender ", self.index, "at position ", gameState.getAgentState(self.index).getPosition())
+    ###print("ATTENTION REQUIRED ON LINE 354")
     self.move_index = 0
     self.previousPosition = gameState.getAgentState(self.index).getPosition()
     self.score_map = self.compute_score_map(gameState)
@@ -461,7 +461,7 @@ class Defender(MainAgent):
     actions = gameState.getLegalActions(self.index)
     eaten = [] #list containing the position where food has been eaten
 
-    ###print("I'm agent ", self.index, " at position ", myState.getPosition())
+    ####print("I'm agent ", self.index, " at position ", myState.getPosition())
 
     previous_observation = self.getPreviousObservation()
     if previous_observation is None:
@@ -478,7 +478,7 @@ class Defender(MainAgent):
     for i in range(0, food.width):
       for j in range(0, food.height):
         if(not food[i][j] and old_food[i][j]):
-          #self.debugDraw([(i,j)], [1,0,0])
+          ##self.debugDraw([(i,j)], [1,0,0])
           eaten.append((i,j)) #list containing the position where food has been eaten by the opponent pacman
 
     if(not myState.isPacman): #if ghost, chase an opponent if possible
@@ -503,9 +503,9 @@ class Defender(MainAgent):
         self.path = astar(self.walls, myState.getPosition(), target , self)
       else: #if no opponent is visible, do infer the best position to go
         self.path = astar(self.walls, myState.getPosition(), find_target_attack_area(self, eaten) , self)
-        ##print("Vado nell'area di attacco")
+        ###print("Vado nell'area di attacco")
       #self.path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), find_target_attack_area(self), self)
-      #self.debugDraw(self.path, [0,1,0], True)
+      ##self.debugDraw(self.path, [0,1,0], True)
             
       if(len(eaten)>0):
         self.score_map = self.compute_score_map(gameState)
@@ -513,13 +513,13 @@ class Defender(MainAgent):
       moves = path_to_moves(self.path)
       
       if(len(moves) == 0):
-        ###print("Fine")
+        ####print("Fine")
         return "Stop"
       if(self.isOnRedTeam and self.path[1][0]> self.middle_index or not self.isOnRedTeam and self.path[1][0]< self.middle_index):
         return "Stop"
 
       if moves[0] not in gameState.getLegalActions(self.index):
-        ##print("Azione illegale")
+        ###print("Azione illegale")
         return "Stop"
       return moves[0]
     
@@ -528,7 +528,7 @@ class Defender(MainAgent):
       if(len(eaten)>0):
         self.score_map = self.compute_score_map(gameState)
 
-      ##print("Go to the closest inlet and enter your field") #lo sto facendo andare al centro del campo
+      ###print("Go to the closest inlet and enter your field") #lo sto facendo andare al centro del campo
       path = None
       for inlet in self.inlets:
         inlet_middle = inlet.get_center()
@@ -538,10 +538,10 @@ class Defender(MainAgent):
 
       moves = path_to_moves(path)
       if(len(moves) == 0):
-        ###print("Fine")
+        ####print("Fine")
         return "Stop"
       if moves[0] not in gameState.getLegalActions(self.index):
-        ##print("Azione illegale")
+        ###print("Azione illegale")
         return "Stop"
       return moves[0]
   
@@ -581,7 +581,7 @@ class Attacker(MainAgent):
 
 
   def compute_score_map(self, gameState):
-    ###print("Computing score map")
+    ####print("Computing score map")
     if(self.isOnRedTeam):
       food = gameState.getBlueFood()
       capsule = gameState.getBlueCapsules()
@@ -623,7 +623,7 @@ class Attacker(MainAgent):
   def registerInitialState(self, gameState):
     self.isAttacker = True
     MainAgent.registerInitialState(self, gameState)
-    ##print("I am an Attacker")
+    ###print("I am an Attacker")
     self.score_map = self.compute_score_map(gameState)
     self.last_eaten = 0
     self.target = None
@@ -632,7 +632,7 @@ class Attacker(MainAgent):
     self.capsule_timeout = MAX_CAPSULE_TIMEOUT
     self.close_agents = []
     for i in range (0, self.layout.width):
-      ##print(self.score_map[i])
+      ###print(self.score_map[i])
       pass
 
   
@@ -668,6 +668,8 @@ class Attacker(MainAgent):
       self.score_map = self.compute_score_map(gameState)
     eaten = []
 
+    #print("Sono in posizione ", myState.getPosition())
+    #self.debugClear()
 
    
 
@@ -685,11 +687,11 @@ class Attacker(MainAgent):
     for i in range(0, food.width):
       for j in range(0, food.height):
         if(not food[i][j] and old_food[i][j]):
-          #self.debugDraw([(i,j)], [1,0,0])
+          ##self.debugDraw([(i,j)], [1,0,0])
           eaten.append((i,j))
 
-    ####print("Legal actions are %s" % actions)
-    ####print("Possible actions are %s" % self.getPossibleActions(gameState.getAgentPosition(self.index)))
+    #####print("Legal actions are %s" % actions)
+    #####print("Possible actions are %s" % self.getPossibleActions(gameState.getAgentPosition(self.index)))
 
     if(myState.isPacman):
       if(not self.wasPacman):
@@ -698,41 +700,52 @@ class Attacker(MainAgent):
       if(carrying>2):
         path_to_inlet = None
         for inlet in self.inlets:
-          if(abs(my_position[0] - inlet.get_center()[0])==1):
+          if(abs(my_position[0] - inlet.get_center()[0])==1 and abs(my_position[1] - inlet.get_center()[1])==0):
             inlet_distance = 1
             path_to_inlet = [my_position,(inlet.start_pos[0], my_position[1])]
             break
         if(path_to_inlet is not None):
           moves = path_to_moves(path_to_inlet)
           if(len(moves) == 0):
-            ####print("Fine")
+            #print("Fine1")
             return "Stop"
           if moves[0] not in gameState.getLegalActions(self.index):
-            ###print("Azione illegale")
+            #print("Azione illegale1")
             return "Stop"
+          #self.debugDraw(path_to_inlet, [1,0,1], True)
           return moves[0]
 
-      ####print("I am pacman")
+      #####print("I am pacman")
       if(carrying>self.total_food*(GO_BACK_PERCENTAGE_THRESHOLD) * (0.5 if self.counter/MAX_COUNTER>0.85 else 1) and not self.has_eaten_capsule):#*exp(self.counter/70)/10
         inlet_distance = inf
         path_to_inlet = []
         for inlet in self.inlets:
-          if(abs(my_position[0] - inlet.get_center()[0])==1):
+          if(abs(my_position[0] - inlet.get_center()[0])==1 and abs(my_position[1] - inlet.get_center()[1])==0):
             inlet_distance = 1
             path_to_inlet = [my_position,(inlet.start_pos[0], my_position[1])]
             break
-          path = astar(self.walls, my_position, (inlet.start_pos[0], int((inlet.start_pos[1] + inlet.end_pos[1])/2)) , self, False , self.has_eaten_capsule)
+          path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), inlet.get_center() , self, False , self.has_eaten_capsule)
           if(len(path)<inlet_distance):
             inlet_distance = len(path)
             path_to_inlet = path
+            #print("Inlet center: ", inlet.get_center())
+
         moves = path_to_moves(path_to_inlet)
         if(len(moves) == 0):
-          ####print("Fine")
+          #print("Fine2")
           return "Stop"
         if moves[0] not in actions:
-          ###print("Azione illegale")
+          #print(path_to_inlet)
+          #print("Going to inlet with move", moves[0], "from position", my_position)
+          #print("Azione illegale2")
           return "Stop"
         myState.wasPacman = myState.isPacman
+        #self.debugDraw(path_to_inlet, [1,1,0], True)
+        #self.debugDraw(gameState.getAgentState(self.index).getPosition(), [0,0,1])
+        #print(path_to_inlet)
+        #print("Going to inlet with move", moves[0], "from position", my_position)
+        return Actions.vectorToDirection((path_to_inlet[1][0]-path_to_inlet[0][0], path_to_inlet[1][1]-path_to_inlet[0][1]))
+
   
         return moves[0]
 
@@ -744,8 +757,8 @@ class Attacker(MainAgent):
               if(self.score_map[i][j]>max_score and self.walls[i][j]==False):
                 self.target = (i,j)
                 max_score = self.score_map[i][j]
-          #self.debugDraw([self.target], [1,1,1])      
-          ####print("Il mio target è", self.target)
+          ##self.debugDraw([self.target], [1,1,1])      
+          #####print("Il mio target è", self.target)
           path = astar(self.walls, my_position, self.target , self, False , self.has_eaten_capsule)
           moves = path_to_moves(path)
           max_score_position = None
@@ -772,7 +785,7 @@ class Attacker(MainAgent):
           my_position = myState.getPosition()
           my_position = (int (my_position[0]), int (my_position[1]))
           for nearbypos in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
-            ###print("C'è food in ", (my_position[0]+nearbypos[0], my_position[1]+nearbypos[1]), ":", food[my_position[0]+nearbypos[0]][my_position[1]+nearbypos[1]])
+            ####print("C'è food in ", (my_position[0]+nearbypos[0], my_position[1]+nearbypos[1]), ":", food[my_position[0]+nearbypos[0]][my_position[1]+nearbypos[1]])
             chased = False
             opponents_pos = [(x,gameState.getAgentPosition(x)) for x in self.getOpponents(gameState)]
             opponents_pos = [(x,y) for (x,y) in opponents_pos if y is not None]
@@ -788,26 +801,29 @@ class Attacker(MainAgent):
                 max_score = score
                 max_score_position = (my_position[0]+nearbypos[0], my_position[1]+nearbypos[1])
           if max_score_position is not None:
-            ##print("FACCIO L'HILLING VERSO ", max_score_position)
+            ###print("FACCIO L'HILLING VERSO ", max_score_position)
             #####sleep(0.1)
             path = astar(self.walls, my_position, max_score_position , self, False , self.has_eaten_capsule)
             moves = path_to_moves(path)
             if(len(moves) == 0):
-              ####print("Fine")
+              #print("Fine3")
               return "Stop"
             if moves[0] not in actions:
-              ###print("Azione illegale")
+              #print("Azione illegale3")
               return "Stop"
+            #self.debugDraw(path, [1,0,1], True)
             return moves[0]      
 
           if(len(moves) == 0):
-            ####print("Fine")
+            #print("Fine4")
             return "Stop"
           if moves[0] not in actions:
-            ###print("Azione illegale")
+            #print("Azione illegale4")
             return "Stop"
-          ####print("I should go to the best food")
+          #####print("I should go to the best food")
           myState.wasPacman = myState.isPacman
+          #self.debugDraw(path, [1,1,1], True)
+
           return moves[0]
     else: #I'm not pacman
           self.target =  None
@@ -817,17 +833,19 @@ class Attacker(MainAgent):
               if(self.score_map[i][j]>max_score and self.walls[i][j]==False):
                 self.target = (i,j)
                 max_score = self.score_map[i][j]
-          ####print("Il mio target è", self.target)
+          #####print("Il mio target è", self.target)
           path = astar(self.walls, gameState.getAgentState(self.index).getPosition(), self.target , self, False , self.has_eaten_capsule)
-          #self.debugDraw([self.target], [1,1,1])      
+          ##self.debugDraw([self.target], [1,1,1])      
 
           moves = path_to_moves(path)
           if(len(moves) == 0):
-            ####print("Fine")
+            #print("Fine5")
             return "Stop"
           if moves[0] not in actions:
-            ###print("Azione illegale")
+            #print("Azione illegale5")
             return "Stop"
-          ####print("I should go to the best food")
+          #####print("I should go to the best food")
           myState.wasPacman = myState.isPacman
+          #self.debugDraw(path, [1,0,0], True)
+
           return moves[0]
